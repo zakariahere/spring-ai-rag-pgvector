@@ -2,23 +2,41 @@ spring:
   application:
     name: myrag
 
+  # Load DEEPSEEK_API_KEY (and friends) from a local .env file when present.
+  # optional: -> the app still boots without it.  [.properties] -> parse .env as key=value.
+  config:
+    import: "optional:file:.env[.properties]"
+
   # NOTE: no spring.datasource.* here on purpose.
   # spring-boot-docker-compose reads compose.yaml, starts the pgvector container,
   # and injects url/username/password from the service labelled "postgres".
 
   ai:
+    # Two model providers share the classpath — name which one backs each model type,
+    # or Spring AI won't know which ChatModel / EmbeddingModel to wire.
+    model:
+      chat: deepseek        # generation  -> DeepSeek (cloud)
+      embedding: ollama     # embeddings  -> Ollama  (local, 768-d)
+
+    deepseek:
+      # Key comes from .env (DEEPSEEK_API_KEY). A non-empty dummy default lets the app
+      # BOOT without a key (Phase 1 stays usable); /ask then fails gracefully at call time.
+      api-key: ${DEEPSEEK_API_KEY:not-configured}
+      chat:
+        options:
+          model: deepseek-v4-flash
+          temperature: 0.3    # low -> factual, grounded answers over creativity
+
     ollama:
       # Ollama on your EVO-X2 homelab. Override without touching code:
       #   $env:OLLAMA_BASE_URL='http://<evo-x2-ip>:11434'; mvn spring-boot:run
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
 
       init:
-        # Auto-pull models we reference if they aren't on the Ollama host yet.
+        # Auto-pull the embedding model if it isn't on the Ollama host yet.
         pull-model-strategy: when_missing
         embedding:
-          include: true          # Phase 1 needs the embedder...
-        chat:
-          include: false         # ...but not a chat model yet (that's Phase 2)
+          include: true          # only the embedder runs locally now (chat = DeepSeek)
 
       embedding:
         model: nomic-embed-text  # 768-dimensional embeddings

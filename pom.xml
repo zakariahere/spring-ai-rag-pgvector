@@ -32,10 +32,22 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- Ollama models (embeddings now; chat later in Phase 2). Homelab-friendly. -->
+        <!-- Ollama: local embeddings (nomic-embed-text, 768-d). Free + private. -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-starter-model-ollama</artifactId>
+        </dependency>
+
+        <!-- DeepSeek: cloud chat model for the generation half (Phase 2). -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-deepseek</artifactId>
+        </dependency>
+
+        <!-- QuestionAnswerAdvisor lives here — the starters don't pull it in. -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-advisors-vector-store</artifactId>
         </dependency>
 
         <!-- pgvector store: brings JDBC + postgres driver + PgVectorStore autoconfig -->

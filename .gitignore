@@ -14,3 +14,6 @@ target/
 ### OS ###
 Thumbs.db
 .DS_Store
+
+### Secrets — NEVER commit real keys ###
+.env

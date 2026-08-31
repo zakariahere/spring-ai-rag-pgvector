@@ -1,0 +1,33 @@
+meta {
+  name: Ask (RAG)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/rag/ask?q=Who won the world cup in 1998?
+  body: none
+  auth: none
+}
+
+params:query {
+  q: Who won the world cup in 1998?
+}
+
+assert {
+  res.status: eq 200
+  res.body.answer: isString
+}
+
+docs {
+  The FULL RAG loop: retrieve -> augment the prompt -> generate (DeepSeek).
+  Returns { question, answer, sources[] } — the grounded answer PLUS the chunks
+  it stood on, so you can audit it.
+  
+  Prerequisites:
+    - DEEPSEEK_API_KEY in .env for a GENERATED answer. Without it the app still
+      boots and this returns the retrieved sources + a "chat not configured" note.
+    - Run "Ingest Sample" first so there's something to retrieve.
+  Try a question the docs DON'T cover (like this 1998 World Cup one) to watch it
+  say "I don't know" instead of hallucinating — the prompt-template rule at work.
+}
