@@ -1,0 +1,26 @@
+meta {
+  name: Search - keyword
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/rag/search?query=why chunk documents&topK=4
+  body: none
+  auth: none
+}
+
+params:query {
+  query: why chunk documents
+  topK: 4
+}
+
+assert {
+  res.status: eq 200
+  res.body: isArray
+}
+
+docs {
+  The retrieval half of RAG, laid bare — no LLM.
+  Returns the top-K chunks as [{ score, source, text }], ordered by cosine similarity.
+}

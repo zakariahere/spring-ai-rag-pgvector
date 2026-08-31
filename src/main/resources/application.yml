@@ -1,0 +1,52 @@
+spring:
+  application:
+    name: myrag
+
+  # NOTE: no spring.datasource.* here on purpose.
+  # spring-boot-docker-compose reads compose.yaml, starts the pgvector container,
+  # and injects url/username/password from the service labelled "postgres".
+
+  ai:
+    ollama:
+      # Ollama on your EVO-X2 homelab. Override without touching code:
+      #   $env:OLLAMA_BASE_URL='http://<evo-x2-ip>:11434'; mvn spring-boot:run
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+
+      init:
+        # Auto-pull models we reference if they aren't on the Ollama host yet.
+        pull-model-strategy: when_missing
+        embedding:
+          include: true          # Phase 1 needs the embedder...
+        chat:
+          include: false         # ...but not a chat model yet (that's Phase 2)
+
+      embedding:
+        model: nomic-embed-text  # 768-dimensional embeddings
+
+    vectorstore:
+      pgvector:
+        # Create the vector_store table + index on startup if missing.
+        # This became opt-in at Spring AI 1.0 GA (used to be automatic).
+        initialize-schema: true
+        # MUST match the embedding model's output size. nomic-embed-text = 768.
+        # Mismatch here = every insert fails with a dimension error.
+        dimensions: 768
+        distance-type: cosine_distance
+        index-type: hnsw
+
+logging:
+  level:
+    # Uncomment to watch the SQL / embedding calls fly by while learning:
+    # org.springframework.ai.vectorstore: DEBUG
+    org.springframework.ai: INFO
+
+# Allow bigger uploads for PDFs
+spring.servlet.multipart.max-file-size: 25MB
+spring.servlet.multipart.max-request-size: 25MB
+
+# --- RAG tuning knobs (the parameters worth experimenting with first) ---
+myrag:
+  chunk:
+    size: 256        # target tokens per chunk. Smaller = more focused hits but
+                     # more rows; larger = more context per hit but noisier.
+    min-chars: 150   # don't emit a chunk shorter than this many characters

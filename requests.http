@@ -1,0 +1,20 @@
+### Ingest the bundled primer doc (one-click test)
+POST http://localhost:8080/rag/ingest/sample
+
+### Ingest any file of your own (PDF, docx, html, md, txt...)
+# Point the filename at a real file on disk.
+POST http://localhost:8080/rag/ingest
+Content-Type: multipart/form-data; boundary=----myrag
+
+------myrag
+Content-Disposition: form-data; name="file"; filename="mydoc.pdf"
+Content-Type: application/pdf
+
+< ./mydoc.pdf
+------myrag--
+
+### Search — the retrieval half of RAG, no LLM
+GET http://localhost:8080/rag/search?query=why chunk documents&topK=4
+
+### Search — meaning match, not keyword match
+GET http://localhost:8080/rag/search?query=how do I get my money back&topK=3

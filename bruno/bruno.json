@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "myrag",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

@@ -1,0 +1,23 @@
+meta {
+  name: Ingest Sample
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/rag/ingest/sample
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.ingestedChunks: gt 0
+}
+
+docs {
+  Ingests the bundled primer doc (what-is-rag.md) from the classpath.
+  Pipeline: read (Tika) -> chunk (256 tokens) -> embed (nomic-embed-text) -> store (pgvector).
+  Returns: { "source": "what-is-rag.md", "ingestedChunks": 3 }
+  Run this first so the /search requests have something to find.
+}

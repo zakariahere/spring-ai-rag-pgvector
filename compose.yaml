@@ -1,0 +1,32 @@
+services:
+  pgvector:
+    # postgres 17 + the pgvector extension pre-built in
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: myrag
+      POSTGRES_PASSWORD: myrag
+      POSTGRES_DB: myrag
+    ports:
+      - "5432:5432"
+    volumes:
+      # Anything in this folder runs ONCE, the first time the data volume is created.
+      # 01-enable-pgvector.sql turns on the `vector` extension for us.
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+      # Persist data across restarts. `docker compose down -v` wipes it.
+      - pgdata:/var/lib/postgresql/data
+    labels:
+      # This label is the magic that makes Spring Boot's docker-compose support
+      # treat this container as a Postgres "service connection" and wire the
+      # datasource automatically. Without it, Boot wouldn't recognise the
+      # pgvector/pgvector image (its name doesn't contain "postgres").
+      org.springframework.boot.service-connection: postgres
+    healthcheck:
+      # Boot waits for `healthy` before connecting — which also means it waits
+      # until the init SQL above has finished running.
+      test: ["CMD-SHELL", "pg_isready -U myrag -d myrag"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:

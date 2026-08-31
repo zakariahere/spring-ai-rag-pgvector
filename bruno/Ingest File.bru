@@ -1,0 +1,26 @@
+meta {
+  name: Ingest File
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/rag/ingest
+  body: multipartForm
+  auth: none
+}
+
+body:multipart-form {
+  file: @file(C:\workspace\playground\dirt\myrag\src\main\resources\docs\what-is-rag.md)
+}
+
+assert {
+  res.status: eq 200
+  res.body.ingestedChunks: gt 0
+}
+
+docs {
+  Upload ANY document — PDF, docx, html, md, txt. Apache Tika sniffs the type.
+  Swap the @file(...) path for your own file (absolute path is safest on Windows).
+  The form field MUST be named "file" (matches @RequestParam("file") in RagController).
+}

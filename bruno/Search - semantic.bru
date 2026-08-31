@@ -1,0 +1,27 @@
+meta {
+  name: Search - semantic
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/rag/search?query=how is vector search kept fast&topK=3
+  body: none
+  auth: none
+}
+
+params:query {
+  query: how is vector search kept fast
+  topK: 3
+}
+
+assert {
+  res.status: eq 200
+  res.body: isArray
+}
+
+docs {
+  Semantic-match demo: none of these words appear verbatim in the stored text,
+  yet relevant chunks still come back — meaning, not keyword overlap.
+  Try editing the query to your own phrasing and watch the scores move.
+}
