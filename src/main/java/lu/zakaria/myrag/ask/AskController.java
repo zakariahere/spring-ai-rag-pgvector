@@ -1,6 +1,9 @@
 package lu.zakaria.myrag.ask;
 
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -36,33 +40,41 @@ public class AskController {
 
     @GetMapping("/ask")
     public Map<String, Object> ask(@RequestParam String q) {
-        // SOURCES — the chunks retrieval stands on, surfaced either way so the answer
-        // is auditable (and so /search-style output is available even without a chat key).
-        List<Map<String, Object>> sources = vectorStore.similaritySearch(
-                        SearchRequest.builder().query(q).topK(4).build())
-                .stream()
+        // No chat key -> we do our OWN retrieval, since the advisor never runs. Retrieval
+        // is the whole offline half; only generation needs the cloud model.
+        if (!chatConfigured) {
+            return Map.of("question", q,
+                    "answer", "Chat is not configured — set DEEPSEEK_API_KEY in .env to get a generated answer. Retrieved context is below.",
+                    "sources", toSources(vectorStore.similaritySearch(
+                            SearchRequest.builder().query(q).topK(4).build())));
+        }
+
+        // ANSWER — the QuestionAnswerAdvisor (a default on this ChatClient) retrieves the
+        // top chunks, splices them into the prompt, and calls DeepSeek. We capture the
+        // full ChatResponse (not just .content()) so we can read the documents the advisor
+        // ALREADY retrieved out of its metadata — no second search, and the sources are
+        // guaranteed to be exactly what the model saw.
+        ChatResponse response = chatClient.prompt()
+                .user(q)
+                .call()
+                .chatResponse();
+
+        String answer = response.getResult().getOutput().getText();
+
+        Object retrieved = response.getMetadata()
+                .getOrDefault(QuestionAnswerAdvisor.RETRIEVED_DOCUMENTS, Collections.emptyList());
+        @SuppressWarnings("unchecked")
+        List<Document> docs = (List<Document>) retrieved;
+
+        return Map.of("question", q, "answer", answer, "sources", toSources(docs));
+    }
+
+    private static List<Map<String, Object>> toSources(List<Document> docs) {
+        return docs.stream()
                 .map(doc -> Map.<String, Object>of(
                         "score", doc.getScore(),
                         "source", doc.getMetadata().getOrDefault("source", "?"),
                         "text", doc.getText()))
                 .toList();
-
-        // No chat key -> return the retrieved context without generating. Retrieval is
-        // the whole offline half; generation is the part that needs the cloud model.
-        if (!chatConfigured) {
-            return Map.of("question", q,
-                    "answer", "Chat is not configured — set DEEPSEEK_API_KEY in .env to get a generated answer. Retrieved context is below.",
-                    "sources", sources);
-        }
-
-        // ANSWER — the QuestionAnswerAdvisor (a default on this ChatClient) retrieves the
-        // top chunks, splices them into the prompt, and calls DeepSeek. All of
-        // retrieve -> augment -> generate is hidden behind this one fluent call.
-        String answer = chatClient.prompt()
-                .user(q)
-                .call()
-                .content();
-
-        return Map.of("question", q, "answer", answer, "sources", sources);
     }
 }
