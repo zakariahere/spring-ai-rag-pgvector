@@ -51,6 +51,33 @@ spring:
         dimensions: 768
         distance-type: cosine_distance
         index-type: hnsw
+      # Log the chunks each similarity search returned (into the observation logs).
+      observations:
+        log-query-response: true   # DEV ONLY — carries your retrieved text
+
+    # --- Observability: put the actual prompt into the ChatClient observation logs.
+    # DEV ONLY: carries your augmented prompt + context, so keep this off in prod.
+    chat:
+      client:
+        observations:
+          log-prompt: true
+
+# --- OpenTelemetry export -> the grafana/otel-lgtm container (OTLP HTTP on :4318) ---
+management:
+  otlp:
+    tracing:
+      endpoint: http://localhost:4318/v1/traces
+    metrics:
+      export:
+        url: http://localhost:4318/v1/metrics
+        step: 10s          # push metrics every 10s (snappy for a demo)
+  tracing:
+    sampling:
+      probability: 1.0     # sample EVERY request in dev so no trace is missed
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
 
 logging:
   level:

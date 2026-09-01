@@ -70,6 +70,29 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- ===== Observability: Spring AI auto-instruments every ChatModel /
+             EmbeddingModel / VectorStore call once these are on the classpath. ===== -->
+
+        <!-- Actuator turns on the Micrometer observation + metrics infrastructure. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <!-- Bridge Micrometer tracing -> OpenTelemetry, and export spans over OTLP. -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-otlp</artifactId>
+        </dependency>
+        <!-- Export metrics over OTLP too (-> Prometheus inside the LGTM stack). -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-otlp</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
