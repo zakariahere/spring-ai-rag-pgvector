@@ -213,6 +213,38 @@ template, (3) calls DeepSeek. Two details worth knowing:
 > the two coexist with no bean clash. `QuestionAnswerAdvisor` needs an extra dependency the
 > starters don't pull in: `spring-ai-advisors-vector-store`.
 
+## Observability — see every AI call
+
+Once `spring-boot-starter-actuator` + a tracing bridge are on the classpath, Spring AI
+**auto-instruments** every `ChatModel`, `EmbeddingModel`, and `VectorStore` call as a
+Micrometer observation — no code changes. This project ships that wired to a full
+[Grafana **LGTM**](https://github.com/grafana/docker-otel-lgtm) stack (Loki, Grafana,
+Tempo, Prometheus) running as one container, `grafana/otel-lgtm`, in `compose.yaml`.
+
+The app exports OTLP (traces + metrics) to the collector on `:4318`; you explore it in
+**Grafana at <http://localhost:3000>** (login `admin` / `admin`).
+
+A single `/rag/ask` request becomes one trace that lays the whole RAG loop bare:
+
+```
+http get /rag/ask ............... 1598 ms
+  spring_ai chat_client ......... 1596 ms
+    question_answer (advisor) ... 1595 ms
+      embedding ................... 31 ms   ← embed the query (Ollama, local)
+      pg_vector query ............. 40 ms   ← retrieve chunks (pgvector)
+      chat deepseek-v4-flash .... 1551 ms   ← generate (DeepSeek, cloud)
+```
+
+At a glance: generation dominates latency; retrieval is nearly free. That's the payoff of
+tracing — you *see* where the time goes instead of guessing.
+
+> **Gotcha:** Spring Boot's Docker Compose support skips startup if the compose project
+> already has running containers. If you added the LGTM service to an already-running
+> stack, start it once with `docker compose up -d otel-lgtm`; a fresh `mvn spring-boot:run`
+> brings up both. Content logging (`spring.ai.chat.client.observations.log-prompt`, etc.)
+> is enabled here for learning — it records your prompts and retrieved text, so turn it
+> **off** in production.
+
 ## What's next
 
 The shape is complete; these are the quality/UX knobs left to turn:

@@ -28,5 +28,22 @@ services:
       timeout: 3s
       retries: 10
 
+  # The whole LGTM stack in ONE container: OpenTelemetry Collector + Loki (logs) +
+  # Grafana (UI) + Tempo (traces) + Prometheus (metrics), pre-wired as datasources.
+  # The app pushes OTLP to :4318; you read it all in Grafana at http://localhost:3000.
+  otel-lgtm:
+    image: grafana/otel-lgtm:latest
+    ports:
+      - "3000:3000"   # Grafana UI  (login admin / admin)
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP   <- the app exports here
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      # Persist dashboards + collected telemetry across restarts (the image writes to /data).
+      - lgtmdata:/data
+
 volumes:
   pgdata:
+  lgtmdata:
